@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Keda.Samples.DotNet.EventHub.OrderProcessor' ">
+    <ExternalConsole>true</ExternalConsole>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Newtonsoft.Json" />
+    <None Remove="Azure.Messaging.EventHubs.Processor" />
+    <None Remove="Azure.Identity" />
+    <None Remove="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
+    <PackageReference Include="Azure.Identity" Version="1.5.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.1" />
+  </ItemGroup>
+</Project>

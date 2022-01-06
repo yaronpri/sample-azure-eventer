@@ -1,0 +1,13 @@
+﻿1. build docker image by executing: docker build -t <your registry/your image name> .
+2. execute the docker image by executing: docker run -d -p 8001:80 -e GLOBAL_AUTH_MODE=ConnectionString -e EVENTHUB_CONSUMERGROUP="<consumer group name, e.g. \$Default" -e EVENTHUB_NAME="<eventhub name>" -e EVENTHUB_CONNECTIONSTRING="<event hub connection string>" -e BLOB_CHECKPOINT_CONTAINERNAME="<container name>" -e BLOB_CHECKPOINT_CONNECTIONSTRING="<blob checkpoint connection string>" -e BLOB_STORE_CONTAINERNAME="<container name>" -e BLOB_STORE_CONNECTIONSTRING="<blob store connection string>" -e BLOB_STORE_CONTAINERNAME_RESULT="<result container name>" -e BLOB_STORE_CONNECTIONSTRING_RESULT="<blob store result connection string>" <your registry name/your image name>
+
+Sample EventGrid message:
+	"[{\"topic\":\"/subscriptions/be1360bb-6283-4c73-8eef-cde94e10e13f/resourceGroups/MC_aks-rg_events-chaining-aks_westeurope/providers/Microsoft.Storage/storageAccounts/yaronincomingfiles\",
+    \"subject\":\"/blobServices/default/containers/files/blobs/demofile-2b28f205-3eea-40db-b81e-ee1d5da61301.xml\",
+    \"eventType\":\"Microsoft.Storage.BlobCreated\",\"id\":\"6aca7705-701e-003e-2d33-02b2c4067e62\",\"data\":{\"api\":\"PutBlob\",\"clientRequestId\":\"d2c9522a-207b-4632-bfae-a486a75b0f4d\",
+      \"requestId\":\"6aca7705-701e-003e-2d33-02b2c4000000\",\"eTag\":\"0x8D9D04AAFEB56FF\",\"contentType\":\"application/octet-stream\",\"contentLength\":204,\"blobType\":\"BlockBlob\",
+      \"url\":\"https://yaronincomingfiles.blob.core.windows.net/files/demofile-2b28f205-3eea-40db-b81e-ee1d5da61301.xml\",\"sequencer\":\"00000000000000000000000000007E3E0000000000022bf6\",\
+    "storageDiagnostics\":{\"batchId\":\"66e5fcf3-f006-0052-0033-02ada0000000\"}},\"dataVersion\":\"\",\"metadataVersion\":\"1\",\"eventTime\":\"2022-01-…	string
+
+
+	

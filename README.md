@@ -1,1 +1,1 @@
-# sample-azure-eventer
+# samples-azure-eventer

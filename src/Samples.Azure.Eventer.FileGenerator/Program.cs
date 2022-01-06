@@ -17,43 +17,8 @@ namespace Samples.Azure.Eventer.FileGenerator
         {
             try
             {
-                /*
-                var cl = new BlobContainerClient("DefaultEndpointsProtocol=https;AccountName=yaronincomingfiles;AccountKey=/Sd4fZcvvdoTcKUZHgLlGyE6hLqW2qVZDBTa8vtdJmJ0Nl5Ri70WxLanA26Xyxo5SxxQp2kjPbasGYBNgYu2tw==;EndpointSuffix=core.windows.net",
-                       "wav");
-                var blobClient = cl.GetBlobClient("demofile-6e82acdb-1882-4ded-b8a1-8f5dee538650.xml");
-                MemoryStream mem = new MemoryStream();
-                blobClient.DownloadTo(mem);                                                               
-                byte[] content = mem.ToArray();                              
-                string xml = Encoding.UTF8.GetString(content);
-                var doc = new XmlDocument();
-                doc.LoadXml(xml);
-
-
-                //var c = doc.GetElementById("File");
-
-                var b = doc.ChildNodes[1]["Data"].InnerText;
-                byte[] tempBytes = Convert.FromBase64String(b);
-                //File.WriteAllBytes(@"new.wav", tempBytes);
-
-                var upClient = cl.GetBlobClient("new.wav");
-                await upClient.UploadAsync(new MemoryStream(tempBytes));
-
-
-                //XmlReader rea = XmlReader.Create(content);
-                //rea.ReadToFollowing("Name");
-                //var b2 = rea.ReadElementContentAsString();
-
-                //XmlReader reader = XmlReader.Create(SAMPLE_FILE);
-
-
-                //reader.ReadToFollowing("Data");
-                //var b = reader.ReadElementContentAsString();
-
-                //var b1 = File.ReadAllText("testbase64.txt");
-                //byte[] tempBytes = Convert.FromBase64String(b);
-                //File.WriteAllBytes(@"new.wav", tempBytes);
-                */
-                Console.WriteLine("Let's send some orders, how many files per second you want to upload ?");
+                
+                Console.WriteLine("Let's send some files, how many files per second you want to upload ?");
                 var requestedAmount = DetermineOrderAmount();
                 Console.WriteLine("For how many seconds you would like to send it?");
                 var requestedSeconds = DetermineSecondAmount();

@@ -37,25 +37,19 @@ async def on_event(partition_context, event):
         full_blob_name = new_event_json[0]["data"]["url"]
         start_substring = full_blob_name.index(container_uri) + len(container_uri) + 1
         blob_name = full_blob_name[start_substring:len(full_blob_name)]  
-
         blob_client = blob_service_client.get_blob_client(container=preprocess_container_name, blob=blob_name)
-    
         stream = await blob_client.download_blob()
         data = await stream.readall()
-
         #TODO: research for async implementation
         tree = ET.fromstring(data)
         new1element = ET.fromstring("<New1>new1</New1>")
         new2element = ET.fromstring("<New2>new2</New2>")
         tree.append(new1element)
         tree.append(new2element)
-
         result_blob_client = blob_result_service_client.get_blob_client(container=result_container_name, blob=blob_name)
         await result_blob_client.upload_blob(ET.tostring(tree, encoding='utf8'))
-        
          # Update the checkpoint so that the program doesn't read the events
         await partition_context.update_checkpoint(event)
-
         end = time.time()
         print("End processing event ", new_event_json[0]["data"]["requestId"], datetime.now(), "took (sec)", end - start)
     except Exception as e:

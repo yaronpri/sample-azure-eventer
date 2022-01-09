@@ -33,6 +33,7 @@ namespace Samples.Azure.Eventer.ExtractorProcessor
                 var blobName = fileUri.Substring(fileUri.IndexOf(containerUri) + containerUri.Length + 1);
                 var blobClient = blobContainerClient.GetBlobClient(blobName);
 
+                
                 //TODO: find better way to load the xml file to memory 
                 MemoryStream mem = new MemoryStream();
                 blobClient.DownloadTo(mem);

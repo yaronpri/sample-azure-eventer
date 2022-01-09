@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-appender
+  labels:
+    app: event-appender
+spec:
+  selector:
+    matchLabels:
+      app: event-appender
+  template:
+    metadata:
+      labels:
+        app: event-appender
+    spec:
+      containers:
+      - name: event-appender
+        image: yaronpr/samples-azure-eventer-python-appender:latest
+        env:        
+        - name: EVENTHUB_CONSUMERGROUP
+          value: "$Default"
+        - name: EVENTHUB_NAME
+          value: "pre-files-events"
+        - name: EVENTHUB_CONNECTIONSTRING
+          valueFrom:
+            secretKeyRef:
+             name: secrets-appender-consumer
+             key: eventhub-connectionstring
+        - name: BLOB_CHECKPOINT_CONTAINERNAME
+          value: checkpointprefileevents
+        - name: BLOB_CHECKPOINT_CONNECTIONSTRING
+          valueFrom:
+            secretKeyRef:
+              name: secrets-appender-consumer
+              key: blob-checkpoint-connectionstring
+        - name: EVENTHUB_FULL_CONNECTIONSTRING
+          valueFrom:
+            secretKeyRef:
+              name: secrets-appender-consumer
+              key: eventhub-full-connectionstring
+        - name: BLOB_STORE_CONTAINERNAME
+          value: preprocessfiles
+        - name: BLOB_STORE_CONNECTIONSTRING
+          valueFrom:
+            secretKeyRef:
+              name: secrets-appender-consumer
+              key: blob-store-connectionstring
+        - name: BLOB_STORE_CONTAINERNAME_RESULT
+          value: files
+        - name: BLOB_STORE_CONNECTIONSTRING_RESULT
+          valueFrom:
+            secretKeyRef:
+              name: secrets-appender-consumer
+              key: blob-store-result-connectionstring                            
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secrets-appender-consumer
+  labels:
+    app: event-appender
+data:
+  eventhub-connectionstring: RW5kcG9pbnQ9c2I6Ly95YXJvbnBpbmNvbWluZ2V2ZW50cy5zZXJ2aWNlYnVzLndpbmRvd3MubmV0LztTaGFyZWRBY2Nlc3NLZXlOYW1lPVJvb3RNYW5hZ2VTaGFyZWRBY2Nlc3NLZXk7U2hhcmVkQWNjZXNzS2V5PWc2VllMdldzT2czUEdJYU1MUEZVcW5vLzFNR3pQbzV6RVpWUE4yRW5SOWM9
+  blob-checkpoint-connectionstring: RGVmYXVsdEVuZHBvaW50c1Byb3RvY29sPWh0dHBzO0FjY291bnROYW1lPXlhcm9ucGluY29taW5nZXZlbnRzO0FjY291bnRLZXk9VHY4UjVEbTUwMXZSa2VNemZOVFUrSmZ5bW5JNlRjeU0xRWdHWXVDWjJTV2RLYnVrK2ZpTno1dFNlNzh0UnlRcmdpSW5wNEdSU2lLUDFBK0d2ajBGc0E9PTtFbmRwb2ludFN1ZmZpeD1jb3JlLndpbmRvd3MubmV0
+  eventhub-full-connectionstring: RW5kcG9pbnQ9c2I6Ly95YXJvbnBpbmNvbWluZ2V2ZW50cy5zZXJ2aWNlYnVzLndpbmRvd3MubmV0LztTaGFyZWRBY2Nlc3NLZXlOYW1lPVJvb3RNYW5hZ2VTaGFyZWRBY2Nlc3NLZXk7U2hhcmVkQWNjZXNzS2V5PWc2VllMdldzT2czUEdJYU1MUEZVcW5vLzFNR3pQbzV6RVpWUE4yRW5SOWM9O0VudGl0eVBhdGg9cHJlLWZpbGVzLWV2ZW50cw==
+  blob-store-result-connectionstring: RGVmYXVsdEVuZHBvaW50c1Byb3RvY29sPWh0dHBzO0FjY291bnROYW1lPXlhcm9uaW5jb21pbmdmaWxlcztBY2NvdW50S2V5PS9TZDRmWmN2dmRvVGNLVVpIZ0xsR3lFNmhMcVcycVZaREJUYTh2dGRKbUowTmw1Umk3MFd4TGFuQTI2WHl4bzVTeHhRcDJralBiYXNHWUJOZ1l1MnR3PT07RW5kcG9pbnRTdWZmaXg9Y29yZS53aW5kb3dzLm5ldA==
+  blob-store-connectionstring: RGVmYXVsdEVuZHBvaW50c1Byb3RvY29sPWh0dHBzO0FjY291bnROYW1lPXlhcm9uaW5jb21pbmdmaWxlcztBY2NvdW50S2V5PS9TZDRmWmN2dmRvVGNLVVpIZ0xsR3lFNmhMcVcycVZaREJUYTh2dGRKbUowTmw1Umk3MFd4TGFuQTI2WHl4bzVTeHhRcDJralBiYXNHWUJOZ1l1MnR3PT07RW5kcG9pbnRTdWZmaXg9Y29yZS53aW5kb3dzLm5ldA==
+

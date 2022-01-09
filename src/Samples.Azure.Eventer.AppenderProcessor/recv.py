@@ -9,24 +9,24 @@ from azure.eventhub.extensions.checkpointstoreblobaio import BlobCheckpointStore
 from azure.storage.blob.aio import BlobServiceClient, BlobClient, ContainerClient
 
 #blob source details
-blob_service_connection = '<SOURCE BLOB STORAGE CONNECTION STRING>'
+blob_service_connection = os.environ["BLOB_STORE_CONNECTIONSTRING"]
 blob_service_client = BlobServiceClient.from_connection_string(blob_service_connection)
-preprocess_container_name = "<SOURCE CONTAINER NAME>"
+preprocess_container_name = os.environ["BLOB_STORE_CONTAINERNAME"]
 container_uri = blob_service_client.primary_endpoint + preprocess_container_name
 
 #blob result details
-blob_result_service_connection = '<RESULT BLOB STORAGE CONNECTION STRING>'
+blob_result_service_connection = os.environ["BLOB_STORE_CONNECTIONSTRING_RESULT"]
 blob_result_service_client = BlobServiceClient.from_connection_string(blob_result_service_connection)
-result_container_name = "<RESULT CONTAINER NAME>"
+result_container_name = os.environ["BLOB_STORE_CONTAINERNAME_RESULT"]
 
 #checkpoint blob details
-checkpoint_store_connection = '<CHECKPOOINT CONNECTION STRING>'
-checkpoint_store_container = "<CHECKPOINT CONTAINER NAME>"
+checkpoint_store_connection = os.environ["BLOB_CHECKPOINT_CONNECTIONSTRING"]
+checkpoint_store_container = os.environ["BLOB_CHECKPOINT_CONTAINERNAME"]
 
 #EventHub details
-event_hub_connection = '<EVENTHUB NAMESPACE CONNECTION STRING>'
-event_hub_name = "<EVENTHUB NAME>"
-consumer_group_name = '<CONSUMER GROUP>'
+event_hub_connection = os.environ["EVENTHUB_CONNECTIONSTRING"]
+event_hub_name = os.environ["EVENTHUB_NAME"]
+consumer_group_name = os.environ["EVENTHUB_CONSUMERGROUP"]
 
 async def on_event(partition_context, event):
     try:

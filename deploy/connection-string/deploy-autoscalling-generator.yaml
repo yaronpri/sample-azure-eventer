@@ -1,0 +1,18 @@
+apiVersion: keda.sh/v1alpha1 
+kind: ScaledObject
+metadata:
+  name: service-generator-scaler
+spec:
+  scaleTargetRef:
+    name: service-generator
+  minReplicaCount: 0 # Change to define how many minimum replicas you want
+  maxReplicaCount: 32 #the actual max replica is bounded azure queue parallel which is 32
+  pollingInterval:  5
+  cooldownPeriod: 30
+  triggers:
+  - type: azure-queue
+    metadata:
+      queueName: requests
+      queueLength: '1'
+      connectionFromEnv: BLOB_CONNECTIONSTRING
+      accountName: yaronincomingfiles

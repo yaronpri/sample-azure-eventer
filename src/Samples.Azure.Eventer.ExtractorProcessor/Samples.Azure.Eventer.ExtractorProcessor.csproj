@@ -3,10 +3,6 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Keda.Samples.DotNet.EventHub.OrderProcessor' ">
-    <ExternalConsole>true</ExternalConsole>
-  </PropertyGroup>
   <ItemGroup>
     <None Remove="Newtonsoft.Json" />
     <None Remove="Azure.Messaging.EventHubs.Processor" />

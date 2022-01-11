@@ -1,29 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using System.Xml;
 using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using Microsoft.Extensions.Configuration;
 
 namespace Samples.Azure.Eventer.FileGenerator
 {
+    public class GeneratorDetails
+    {        
+        public int RequestedAmount { get; set; }
+        public int RequestedSeconds { get; set; }
+    }
+
+
     class Program
     {
-        private static string SAMPLE_FILE = "SampleSourceFile.xml";
+        //private static string SAMPLE_FILE = "SampleSourceFile.xml";
+        private static IConfiguration Config;
 
         static async Task Main(string[] args)
-        {
+        {            
             try
             {
-                
-                Console.WriteLine("Let's send some files, how many files per second you want to upload ?");
+                var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development";
+                Config = new ConfigurationBuilder()
+                    .AddJsonFile($"appsettings.{env}.json")
+                    .Build();
+
+                Console.WriteLine("Let's send some files, how many parallel processes you want (1-32) ?");
+                var requestedProcesses = DetermineProcessesAmount();
+                Console.WriteLine("how many files per second you want to upload ?");
                 var requestedAmount = DetermineOrderAmount();
                 Console.WriteLine("For how many seconds you would like to send it?");
                 var requestedSeconds = DetermineSecondAmount();
 
-                await SendFiles(requestedAmount, requestedSeconds);
+                await SendEventToQueue(requestedProcesses, requestedAmount, requestedSeconds);
+
+                //Test ONLY
+                //await ReadEventFromQueue();
+                //await SendFiles(requestedAmount, requestedSeconds);
 
                 Console.WriteLine("That's it, see you later!");
             }
@@ -32,6 +49,26 @@ namespace Samples.Azure.Eventer.FileGenerator
                 Console.WriteLine(ex.ToString());
             }
         }
+
+        private static async Task SendEventToQueue(int requestedProcesses, int requestedAmount, int requestedSeconds)
+        {
+            string connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
+            var queueName = Config.GetSection("QUEUE_NAME").Value;
+         
+            QueueClient queueClient = new QueueClient(connectionString, queueName);
+            queueClient.CreateIfNotExists();
+            if (queueClient.Exists())
+            {
+                var request = new GeneratorDetails() { RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
+                var jsonReq = JsonSerializer.Serialize<GeneratorDetails>(request);
+                for (int i=0; i < requestedProcesses; i++)
+                {                    
+                    await queueClient.SendMessageAsync(jsonReq);
+                }          
+            }
+        }
+
+        /*****  TEST PURPOSES *****
 
         private static List<string> GenerateFileNames(int count)
         {
@@ -43,16 +80,26 @@ namespace Samples.Azure.Eventer.FileGenerator
             }
 
             return retVal;
-        }        
+        }
+
+        private static async Task ReadEventFromQueue()
+        {
+            string connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
+            var queueName = Config.GetSection("QUEUE_NAME").Value;
+
+            QueueClient queueClient = new QueueClient(connectionString, queueName);
+
+            
+            var msg = await queueClient.ReceiveMessageAsync(new TimeSpan(0,0, 10)); //set visibility timeout to 10 sec
+            var request = msg.Value.Body.ToObjectFromJson<GeneratorDetails>();
+            await queueClient.DeleteMessageAsync(msg.Value.MessageId, msg.Value.PopReceipt);
+
+            await SendFiles(request.RequestedAmount, request.RequestedSeconds);
+        }
 
         private static async Task SendFiles(int requestedAmount, int requestedSeconds)
         {
-            Console.WriteLine("Uploading files...");            
-
-            var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development";
-            IConfiguration Config = new ConfigurationBuilder()
-                .AddJsonFile($"appsettings.{env}.json")
-                .Build();
+            Console.WriteLine("Uploading files...");                                    
 
             var connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
             var containerName = Config.GetSection("BLOB_COTAINERNAME").Value;
@@ -89,7 +136,23 @@ namespace Samples.Azure.Eventer.FileGenerator
             }            
 
             Console.WriteLine("Finished uploading images");
-        }        
+        }*/
+
+
+        private static int DetermineProcessesAmount()
+        {
+            var rawAmount = Console.ReadLine();
+            if (int.TryParse(rawAmount, out int amount))
+            {
+                if ((amount >= 1) && (amount <= 32))
+                {
+                    return amount;
+                }
+            }
+
+            Console.WriteLine("That's not a valid amount (1 - 32), let's try that again");
+            return DetermineOrderAmount();
+        }
 
         private static int DetermineOrderAmount()
         {

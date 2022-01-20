@@ -28,9 +28,16 @@ spec:
               name: secrets-service-generator
               key: blob-upload-connectionstring
         - name: CONTAINER_NAME
-          value: preprocessfiles
+          value: testcontainer
         - name: QUEUE_NAME
-          value: requests                                  
+          value: requests
+        - name: APPINSIGHTS_INSTRUMENTATIONKEY
+          valueFrom:
+            secretKeyRef:
+              name: secrets-service-generator
+              key: appinsights-insrumentationkey
+      nodeSelector:
+        "generator": "yes"
 ---
 apiVersion: v1
 kind: Secret
@@ -39,6 +46,6 @@ metadata:
   labels:
     app: service-generator
 data:
-  blob-upload-connectionstring: RGVmYXVsdEVuZHBvaW50c1Byb3RvY29sPWh0dHBzO0FjY291bnROYW1lPXlhcm9uaW5jb21pbmdmaWxlcztBY2NvdW50S2V5PS9TZDRmWmN2dmRvVGNLVVpIZ0xsR3lFNmhMcVcycVZaREJUYTh2dGRKbUowTmw1Umk3MFd4TGFuQTI2WHl4bzVTeHhRcDJralBiYXNHWUJOZ1l1MnR3PT07RW5kcG9pbnRTdWZmaXg9Y29yZS53aW5kb3dzLm5ldA==  
+  blob-upload-connectionstring: RGVmYXVsdEVuZHBvaW50c1Byb3RvY29sPWh0dHBzO0FjY291bnROYW1lPWJsc2tkanNhbGtqZGxzO0FjY291bnRLZXk9MDJOSnd0MHFiMldoUS8zRUl1T0NxNVMwQzlOZmdFTFNpY2VvUDBtT2hkMytUQ1dubU9YZFYzNnhZNGpzcjdaLzVGeWEvUUNFRHl3bWtGSk03aVhHdmc9PTtFbmRwb2ludFN1ZmZpeD1jb3JlLndpbmRvd3MubmV0
   blob-connectionstring: RGVmYXVsdEVuZHBvaW50c1Byb3RvY29sPWh0dHBzO0FjY291bnROYW1lPXlhcm9uaW5jb21pbmdmaWxlcztBY2NvdW50S2V5PS9TZDRmWmN2dmRvVGNLVVpIZ0xsR3lFNmhMcVcycVZaREJUYTh2dGRKbUowTmw1Umk3MFd4TGFuQTI2WHl4bzVTeHhRcDJralBiYXNHWUJOZ1l1MnR3PT07RW5kcG9pbnRTdWZmaXg9Y29yZS53aW5kb3dzLm5ldA==
-
+  appinsights-insrumentationkey: MWZmNjk4ZmEtODdlZC00Mjg3LWI4MjItMmZiNzAyMDkxYjk1

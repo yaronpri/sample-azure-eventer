@@ -7,8 +7,8 @@ spec:
     name: event-appender
   minReplicaCount: 0 # Change to define how many minimum replicas you want
   maxReplicaCount: 50 #the actual max replica is bounded by the event hub partitation which was configured
-  pollingInterval:  10
-  cooldownPeriod: 15
+  pollingInterval:  5
+  cooldownPeriod: 30
   triggers:
   - type: azure-eventhub
     metadata:

@@ -8,11 +8,13 @@
     <None Remove="Azure.Messaging.EventHubs.Processor" />
     <None Remove="Azure.Identity" />
     <None Remove="Microsoft.Extensions.Hosting" />
+    <None Remove="Microsoft.ApplicationInsights.WorkerService" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
     <PackageReference Include="Azure.Identity" Version="1.5.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.1" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.20.0" />
   </ItemGroup>
 </Project>

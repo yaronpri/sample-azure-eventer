@@ -1,10 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿    using System;
+using System.Diagnostics;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Channel;
+using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
 namespace Samples.Azure.Eventer.FileGenerator
 {
@@ -14,20 +21,35 @@ namespace Samples.Azure.Eventer.FileGenerator
         public int RequestedSeconds { get; set; }
     }
 
+    public class MyTelemetryInitializer : ITelemetryInitializer
+    {
+        public void Initialize(ITelemetry telemetry)
+        {
+            if (string.IsNullOrEmpty(telemetry.Context.Cloud.RoleName))
+            {
+                //set custom role name here
+                telemetry.Context.Cloud.RoleName = "FileGenerator";
+                telemetry.Context.Cloud.RoleInstance = Environment.MachineName;
+            }
+        }
+    }
+
 
     class Program
     {
         //private static string SAMPLE_FILE = "SampleSourceFile.xml";
         private static IConfiguration Config;
+        public const string SOURCE_NAMESPACE = "Samples.Azure.Eventer.FileGenerator";
+        private static readonly ActivitySource MyActivitySource = new ActivitySource(Program.SOURCE_NAMESPACE);
 
         static async Task Main(string[] args)
         {            
             try
-            {
+            {                
                 var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development";
                 Config = new ConfigurationBuilder()
                     .AddJsonFile($"appsettings.{env}.json")
-                    .Build();
+                    .Build();               
 
                 Console.WriteLine("Let's send some files, how many parallel processes you want (1-32) ?");
                 var requestedProcesses = DetermineProcessesAmount();
@@ -36,13 +58,39 @@ namespace Samples.Azure.Eventer.FileGenerator
                 Console.WriteLine("For how many seconds you would like to send it?");
                 var requestedSeconds = DetermineSecondAmount();
 
-                await SendEventToQueue(requestedProcesses, requestedAmount, requestedSeconds);
+                IServiceCollection services = new ServiceCollection();
+                services.AddLogging(loggingBuilder =>
+                {
+                    loggingBuilder.AddFilter<Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider>("Samples.Azure.Eventer.FileGenerator.Program", LogLevel.Information);
+                    loggingBuilder.AddConsole();
+                });
 
+                var appinsights_key = Config.GetSection("APPINSIGHTS_INSTRUMENTATIONKEY").Value ?? string.Empty;
+
+                ILogger<Program> logger;
+                if (string.IsNullOrEmpty(appinsights_key) == false)
+                {
+                    services.AddApplicationInsightsTelemetryWorkerService(appinsights_key);
+                    services.AddSingleton<ITelemetryInitializer, MyTelemetryInitializer>();
+                    IServiceProvider serviceProvider = services.BuildServiceProvider();
+                    var tc = serviceProvider.GetRequiredService<TelemetryClient>();
+                    logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+                    await SendEventToQueue(requestedProcesses, requestedAmount, requestedSeconds, tc, logger);
+                    tc.Flush();
+                }
+                else
+                {
+                    IServiceProvider serviceProvider = services.BuildServiceProvider();
+                    logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+                    await SendEventToQueue(requestedProcesses, requestedAmount, requestedSeconds, logger);
+                }
+  
                 //Test ONLY
                 //await ReadEventFromQueue();
                 //await SendFiles(requestedAmount, requestedSeconds);
 
-                Console.WriteLine("That's it, see you later!");
+                logger.LogInformation("That's it, see you later!");                
+                await Task.Delay(500);
             }
             catch(Exception ex)
             {
@@ -50,21 +98,42 @@ namespace Samples.Azure.Eventer.FileGenerator
             }
         }
 
-        private static async Task SendEventToQueue(int requestedProcesses, int requestedAmount, int requestedSeconds)
+        private static async Task SendEventToQueue(int requestedProcesses, int requestedAmount, int requestedSeconds,
+            ILogger logger)
         {
             string connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
             var queueName = Config.GetSection("QUEUE_NAME").Value;
          
             QueueClient queueClient = new QueueClient(connectionString, queueName);
-            queueClient.CreateIfNotExists();
-            if (queueClient.Exists())
+      
+            var request = new GeneratorDetails() { RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
+            var jsonReq = JsonSerializer.Serialize<GeneratorDetails>(request);
+
+            for (int i=0; i < requestedProcesses; i++)
+            {                
+                await queueClient.SendMessageAsync(jsonReq);
+                logger.LogInformation("Send queue request " + jsonReq);                
+            }                                     
+        }
+
+        private static async Task SendEventToQueue(int requestedProcesses, int requestedAmount, int requestedSeconds,
+            TelemetryClient tc, ILogger logger)
+        {
+            string connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
+            var queueName = Config.GetSection("QUEUE_NAME").Value;
+
+            QueueClient queueClient = new QueueClient(connectionString, queueName);
+
+            var request = new GeneratorDetails() { RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
+            var jsonReq = JsonSerializer.Serialize<GeneratorDetails>(request);
+
+            for (int i = 0; i < requestedProcesses; i++)
             {
-                var request = new GeneratorDetails() { RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
-                var jsonReq = JsonSerializer.Serialize<GeneratorDetails>(request);
-                for (int i=0; i < requestedProcesses; i++)
-                {                    
+                using (var operation = tc.StartOperation<RequestTelemetry>("send-queue-request" + i))
+                {
                     await queueClient.SendMessageAsync(jsonReq);
-                }          
+                    logger.LogInformation("Send queue request " + jsonReq);
+                }
             }
         }
 

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.EventHubs;
@@ -9,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Samples.Azure.Eventer.ExtractorProcessor
 {
@@ -18,11 +16,12 @@ namespace Samples.Azure.Eventer.ExtractorProcessor
         protected ILogger<EventsWorker<TMessage>> Logger { get; }
         protected IConfiguration Configuration { get; }
         private static int counter = 0;
+        
 
         protected EventsWorker(IConfiguration configuration, ILogger<EventsWorker<TMessage>> logger)
         {
             Configuration = configuration;
-            Logger = logger;
+            Logger = logger;                    
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

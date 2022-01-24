@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Storage;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Queues;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
@@ -19,6 +22,21 @@ namespace Samples.Azure.Eventer.ServiceGenerator
         protected readonly IConfiguration Configuration;
         protected readonly ILogger<GeneratorWorker> Logger;
         protected readonly TelemetryClient TelemetryClient;
+        private BinaryData SampleFileData;
+
+        // Specify the StorageTransferOptions
+        private BlobUploadOptions options = new BlobUploadOptions
+        {            
+            TransferOptions = new StorageTransferOptions
+            {
+                // Set the maximum number of workers that 
+                // may be used in a parallel transfer.
+                MaximumConcurrency = 16,
+
+                // Set the maximum length of a transfer to 50MB.
+                MaximumTransferSize = 50 * 1024 * 1024,                
+            }
+        };
 
         public GeneratorWorker(IConfiguration configuration, ILogger<GeneratorWorker> logger)
         {
@@ -49,6 +67,9 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                 var blobServiceClient = new BlobServiceClient(blobUploadConnectionString);
                 var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
 
+                var filebytes = await File.ReadAllBytesAsync(SAMPLE_FILE);
+                SampleFileData = BinaryData.FromBytes(filebytes);
+
                 if (queueClient.Exists())
                 {
                     while (!stoppingToken.IsCancellationRequested)
@@ -59,7 +80,7 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                             var request = msg.Value.Body.ToObjectFromJson<GeneratorDetails>();
                             await queueClient.DeleteMessageAsync(msg.Value.MessageId, msg.Value.PopReceipt);
 
-                            await SendFiles(containerClient, request.RequestedAmount, request.RequestedSeconds);
+                            await SendFiles(containerClient, request.IsReadFromMemory, request.RequestedAmount, request.RequestedSeconds);
                         }
                         await Task.Delay(1000); //delay the next in 1sec
                     }
@@ -76,58 +97,53 @@ namespace Samples.Azure.Eventer.ServiceGenerator
             Logger.LogInformation("GeneratorWorker stop queuing at: {Time}", DateTimeOffset.UtcNow);
         }
 
-        private async Task SendFiles(BlobContainerClient containerClient, int requestedAmount, int requestedSeconds)
+        private async Task SendFiles(BlobContainerClient containerClient, bool isReadFromMemory, int requestedAmount, int requestedSeconds)
         {
             Logger.LogInformation("SendFiles - Start uploading files at: {Time}", DateTimeOffset.UtcNow);
+            var totalTime = new TimeSpan();           
+            int numOfFiles = requestedAmount * requestedSeconds;
+            var generatedNames = GenerateNames(numOfFiles);
+            DateTime beforeStart = DateTime.Now;
 
-            //using (var operation = TelemetryClient.StartOperation<RequestTelemetry>("SendFiles Operation requestAmount=" +  requestedAmount + " requestSeconds=" + requestedSeconds))
-            //{
-                int numOfFiles = requestedAmount * requestedSeconds;
-                var generatedNames = GenerateNames(numOfFiles);
-
-                DateTime beforeStart = DateTime.Now;
-
-                for (int i = 0; i < requestedSeconds; i++)
+            for (int i = 0; i < requestedSeconds; i++)
+            {                    
+                DateTime before = DateTime.Now;
+                var tasks = new List<Task>();
+                for (int j = 0; j < requestedAmount; j++)
                 {
-                    //using (var inneroperation = TelemetryClient.StartOperation<RequestTelemetry>("SendFiles Operation requestAmount=" + requestedAmount + " requestSeconds=" + requestedSeconds,))
-                    //{
-                        DateTime before = DateTime.Now;
-                        var tasks = new List<Task>();
-                        for (int j = 0; j < requestedAmount; j++)
-                        {
-                            var index = (i * requestedAmount) + j;
-                            var filename = "demofile-" + generatedNames[index] + ".xml";
-                            if (TelemetryClient != null)
-                            {
-                                tasks.Add(UploadBlob(containerClient, filename));
-                            }
-                            else
-                            {
-                                tasks.Add(UploadBlob(containerClient, filename));
-                            }
-                        }
-                        await Task.WhenAll(tasks);
+                    var index = (i * requestedAmount) + j;
+                    var filename = "demofile-" + generatedNames[index] + ".xml";
+                    
+                    tasks.Add(UploadBlob(containerClient, filename, isReadFromMemory));
+                    
+                }
+                await Task.WhenAll(tasks);
 
-                        var after = DateTime.Now.Subtract(before);
-
-                        //add the time need to wait for 1 second                        
-                        if (after.TotalMilliseconds < 1000)
-                        {
-                            await Task.Delay(TimeSpan.FromMilliseconds(1000 - after.TotalMilliseconds));
-                            Logger.LogInformation("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took " + after.TotalMilliseconds + " ms");
-                        }
-                        else
-                            Logger.LogWarning("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took more than 1sec: " + after.TotalMilliseconds + " ms");
-                            //}
-                        }                
-            //} 
-            Logger.LogInformation("SendFiles - end uploading files at: " + DateTimeOffset.UtcNow + " took: " + DateTime.Now.Subtract(beforeStart).TotalMilliseconds + " ms");
+                var after = DateTime.Now.Subtract(before);
+                totalTime = totalTime.Add(after);
+                //add the time need to wait for 1 second                        
+                if (after.TotalMilliseconds < 1000)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000 - after.TotalMilliseconds));
+                    Logger.LogInformation("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took " + after.TotalMilliseconds + " ms");
+                }
+                else
+                {
+                    Logger.LogWarning("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took more than 1sec: " + after.TotalMilliseconds + " ms");                            
+                }
+            }                            
+            Logger.LogInformation("SendFiles - end uploading files at: " + DateTimeOffset.UtcNow + " took: " + DateTime.Now.Subtract(beforeStart).TotalMilliseconds + " ms " + " without delays: " + totalTime.TotalMilliseconds + " ms, avg of " + (totalTime.TotalMilliseconds / requestedSeconds) + " ms to upload " + requestedAmount + " files per 1sec");
         }
 
-        private Task UploadBlob(BlobContainerClient containerClient, string filename)
-        {            
-            BlobClient blobClient = containerClient.GetBlobClient(filename);            
-            return blobClient.UploadAsync(SAMPLE_FILE, true);            
+        private Task UploadBlob(BlobContainerClient containerClient, string filename, bool isFromMemory)
+        {
+            if (isFromMemory)
+                return containerClient.UploadBlobAsync(filename, SampleFileData);
+            else
+            {
+                BlobClient blobClient = containerClient.GetBlobClient(filename);
+                return blobClient.UploadAsync(SAMPLE_FILE, options);
+            }
         }
 
         private static List<string> GenerateNames(int count)
@@ -147,5 +163,6 @@ namespace Samples.Azure.Eventer.ServiceGenerator
     {
         public int RequestedAmount { get; set; }
         public int RequestedSeconds { get; set; }
+        public bool IsReadFromMemory { get; set; }
     }
 }

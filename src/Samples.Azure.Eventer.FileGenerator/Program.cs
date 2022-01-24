@@ -19,6 +19,7 @@ namespace Samples.Azure.Eventer.FileGenerator
     {        
         public int RequestedAmount { get; set; }
         public int RequestedSeconds { get; set; }
+        public bool IsReadFromMemory { get; set; }
     }
 
     public class MyTelemetryInitializer : ITelemetryInitializer
@@ -49,9 +50,11 @@ namespace Samples.Azure.Eventer.FileGenerator
                 var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development";
                 Config = new ConfigurationBuilder()
                     .AddJsonFile($"appsettings.{env}.json")
-                    .Build();               
+                    .Build();
 
-                Console.WriteLine("Let's send some files, how many parallel processes you want (1-32) ?");
+                Console.WriteLine("Let's send some files,  how to read sample file, from memory (1) from disk (2) ?");
+                var isReadFromMemory = DetermineInMemory();
+                Console.WriteLine("how many parallel processes you want (1-32) ?");
                 var requestedProcesses = DetermineProcessesAmount();
                 Console.WriteLine("how many files per second you want to upload ?");
                 var requestedAmount = DetermineOrderAmount();
@@ -75,14 +78,14 @@ namespace Samples.Azure.Eventer.FileGenerator
                     IServiceProvider serviceProvider = services.BuildServiceProvider();
                     var tc = serviceProvider.GetRequiredService<TelemetryClient>();
                     logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-                    await SendEventToQueue(requestedProcesses, requestedAmount, requestedSeconds, tc, logger);
+                    await SendEventToQueue(isReadFromMemory, requestedProcesses, requestedAmount, requestedSeconds, tc, logger);
                     tc.Flush();
                 }
                 else
                 {
                     IServiceProvider serviceProvider = services.BuildServiceProvider();
                     logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-                    await SendEventToQueue(requestedProcesses, requestedAmount, requestedSeconds, logger);
+                    await SendEventToQueue(isReadFromMemory, requestedProcesses, requestedAmount, requestedSeconds, logger);
                 }
   
                 //Test ONLY
@@ -98,7 +101,7 @@ namespace Samples.Azure.Eventer.FileGenerator
             }
         }
 
-        private static async Task SendEventToQueue(int requestedProcesses, int requestedAmount, int requestedSeconds,
+        private static async Task SendEventToQueue(bool isReadFromMemory, int requestedProcesses, int requestedAmount, int requestedSeconds,
             ILogger logger)
         {
             string connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
@@ -106,7 +109,7 @@ namespace Samples.Azure.Eventer.FileGenerator
          
             QueueClient queueClient = new QueueClient(connectionString, queueName);
       
-            var request = new GeneratorDetails() { RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
+            var request = new GeneratorDetails() { IsReadFromMemory = isReadFromMemory,  RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
             var jsonReq = JsonSerializer.Serialize<GeneratorDetails>(request);
 
             for (int i=0; i < requestedProcesses; i++)
@@ -116,7 +119,7 @@ namespace Samples.Azure.Eventer.FileGenerator
             }                                     
         }
 
-        private static async Task SendEventToQueue(int requestedProcesses, int requestedAmount, int requestedSeconds,
+        private static async Task SendEventToQueue(bool isReadFromMemory, int requestedProcesses, int requestedAmount, int requestedSeconds,
             TelemetryClient tc, ILogger logger)
         {
             string connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
@@ -124,7 +127,7 @@ namespace Samples.Azure.Eventer.FileGenerator
 
             QueueClient queueClient = new QueueClient(connectionString, queueName);
 
-            var request = new GeneratorDetails() { RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
+            var request = new GeneratorDetails() { IsReadFromMemory = isReadFromMemory, RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
             var jsonReq = JsonSerializer.Serialize<GeneratorDetails>(request);
 
             for (int i = 0; i < requestedProcesses; i++)
@@ -207,6 +210,24 @@ namespace Samples.Azure.Eventer.FileGenerator
             Console.WriteLine("Finished uploading images");
         }*/
 
+        private static bool DetermineInMemory()
+        {
+            var rawAmount = Console.ReadLine();
+            if (int.TryParse(rawAmount, out int amount))
+            {
+                if (amount == 1)
+                {
+                    return true;
+                }
+                else if (amount == 2)
+                {
+                    return false;
+                }
+            }
+
+            Console.WriteLine("That's not a valid amount (1 - inmem / 2 - from disk), let's try that again");
+            return DetermineInMemory();
+        }
 
         private static int DetermineProcessesAmount()
         {

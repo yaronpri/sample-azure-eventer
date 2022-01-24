@@ -37,7 +37,7 @@ spec:
               name: secrets-service-generator
               key: appinsights-insrumentationkey
       nodeSelector:
-        "generator": "yes"
+        "gen2": "yes"
 ---
 apiVersion: v1
 kind: Secret

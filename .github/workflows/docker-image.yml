@@ -17,7 +17,7 @@ jobs:
       with:
         registry: hub.docker.com
         username: yaronpr
-        password: ${{ secrets.DOCKERHUBSECRET }}      
+        password: ${{ secrets.DOCKERHUB }}      
     - uses: actions/checkout@v2
     - name: Build the Docker image
       run: docker build ./src/Samples.Azure.Eventer.ServiceGenerator/ --file src/Samples.Azure.Eventer.ServiceGenerator/Dockerfile --tag yaronpr/samples-azure-eventer-service-generator:$(date +%s)

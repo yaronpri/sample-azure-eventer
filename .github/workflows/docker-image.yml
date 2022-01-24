@@ -12,6 +12,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Docker Login
+      uses: docker/login-action@v1.6.0
+      with:
+        registry: hub.docker.com
+        username: yaronpr
+        password: ${{ secrets.DOCKERHUBSECRET }}      
     - uses: actions/checkout@v2
     - name: Build the Docker image
-      run: docker build ./src/Samples.Azure.Eventer.ServiceGenerator/ --file src/Samples.Azure.Eventer.ServiceGenerator/Dockerfile --tag yaronpr/samples-azure-eventer-service-generator:$(date +%s)    
+      run: docker build ./src/Samples.Azure.Eventer.ServiceGenerator/ --file src/Samples.Azure.Eventer.ServiceGenerator/Dockerfile --tag yaronpr/samples-azure-eventer-service-generator:$(date +%s)
+    - name: Push the Docker image
+      run: docker push yaronpr/samples-azure-eventer-service-generator:$(date +%s)

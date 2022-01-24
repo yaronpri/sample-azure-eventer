@@ -19,6 +19,6 @@ jobs:
         password: ${{ secrets.DOCKERHUB }}      
     - uses: actions/checkout@v2
     - name: Build the Docker image
-      run: docker build ./src/Samples.Azure.Eventer.ServiceGenerator/ --file src/Samples.Azure.Eventer.ServiceGenerator/Dockerfile --tag yaronpr/samples-azure-eventer-service-generator:$(date +%s)
+      run: docker build ./src/Samples.Azure.Eventer.ServiceGenerator/ --file src/Samples.Azure.Eventer.ServiceGenerator/Dockerfile --tag yaronpr/samples-azure-eventer-service-generator:latest
     - name: Push the Docker image
-      run: docker push yaronpr/samples-azure-eventer-service-generator:$(date +%s)
+      run: docker push yaronpr/samples-azure-eventer-service-generator:latest

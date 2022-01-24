@@ -1,0 +1,17 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ main ]
+    paths: 'src/Samples.Azure.Eventer.ServiceGenerator/**' 
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+      run: docker build . --file src/Samples.Azure.Eventer.ServiceGenerator/Dockerfile --tag yaronpr/samples-azure-eventer-service-generator:$(date +%s)

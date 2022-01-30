@@ -100,41 +100,47 @@ namespace Samples.Azure.Eventer.ServiceGenerator
         private async Task SendFiles(BlobContainerClient containerClient, bool isReadFromMemory, int requestedAmount, int requestedSeconds)
         {
             Logger.LogInformation("SendFiles - Start uploading files at: {Time}", DateTimeOffset.UtcNow);
-            var totalTime = new TimeSpan();           
+            var totalTime = new TimeSpan();
             int numOfFiles = requestedAmount * requestedSeconds;
             var generatedNames = GenerateNames(numOfFiles);
             DateTime beforeStart = DateTime.Now;
 
             for (int i = 0; i < requestedSeconds; i++)
-            {                    
+            {
                 DateTime before = DateTime.Now;
                 var tasks = new List<Task>();
                 for (int j = 0; j < requestedAmount; j++)
                 {
                     var index = (i * requestedAmount) + j;
                     var filename = "demofile-" + generatedNames[index] + ".xml";
-                    
+
                     tasks.Add(UploadBlob(containerClient, filename, isReadFromMemory));
-                    
+
                 }
                 await Task.WhenAll(tasks);
 
                 var after = DateTime.Now.Subtract(before);
                 totalTime = totalTime.Add(after);
-                //add the time need to wait for 1 second                        
-                if (after.TotalMilliseconds < 1000)
+                //add the time need to wait for 1 second
+                using (Logger.BeginScope(new Dictionary<string, object> { ["reqNumOfFiles"] = requestedAmount, ["reqTotalTime"] = after.TotalMilliseconds }))
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(1000 - after.TotalMilliseconds));
-                    Logger.LogInformation("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took " + after.TotalMilliseconds + " ms");
+                    if (after.TotalMilliseconds < 1000)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(1000 - after.TotalMilliseconds));
+                        Logger.LogInformation("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took " + after.TotalMilliseconds + " ms");
+                    }
+                    else
+                    {
+                        Logger.LogWarning("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took more than 1sec: " + after.TotalMilliseconds + " ms");
+                    }
                 }
-                else
-                {
-                    Logger.LogWarning("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took more than 1sec: " + after.TotalMilliseconds + " ms");                            
-                }
-            }                            
-            Logger.LogInformation("SendFiles - end uploading files at: " + DateTimeOffset.UtcNow + " took: " + DateTime.Now.Subtract(beforeStart).TotalMilliseconds + " ms " + " without delays: " + totalTime.TotalMilliseconds + " ms, avg of " + (totalTime.TotalMilliseconds / requestedSeconds) + " ms to upload " + requestedAmount + " files per 1sec");
+            }
+            using (Logger.BeginScope(new Dictionary<string, object> { ["totalNumOfFiles"] = requestedAmount * requestedSeconds, ["totalTime"] = totalTime.TotalMilliseconds, ["totalAvg"] = (totalTime.TotalMilliseconds / requestedSeconds) }))
+            {
+                Logger.LogInformation("SendFiles - end uploading files at: " + DateTimeOffset.UtcNow + " took: " + DateTime.Now.Subtract(beforeStart).TotalMilliseconds + " ms " + " without delays: " + totalTime.TotalMilliseconds + " ms, avg of " + (totalTime.TotalMilliseconds / requestedSeconds) + " ms to upload " + requestedAmount + " files per 1sec");
+            }        
         }
-
+    
         private Task UploadBlob(BlobContainerClient containerClient, string filename, bool isFromMemory)
         {
             if (isFromMemory)

@@ -63,18 +63,19 @@ async def on_event(partition_context, event):
             span.parent_span
             start = time.time()
             new_event_json = json.loads(event.body_as_str(encoding='UTF-8'))
-            logger.info("Receive Appender event " + str(new_event_json[0]["data"]["requestId"]) + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
-            
+
             full_blob_name = new_event_json[0]["data"]["url"]
             start_substring = full_blob_name.index(container_uri) + len(container_uri) + 1
             blob_name = full_blob_name[start_substring:len(full_blob_name)]  
             
-            #TODO: improve getting the parent span
-            #tmp = blob_name.replace("demofile-", "")
-            #tmp = tmp.replace(".xml", "")
-            #tmp = tmp.replace("-", "")
-            #span.parent_span.span_id = tmp
+            # Getting the file uid
+            fileuid = blob_name.replace("demofile-", "")
+            fileuid = fileuid.replace(".xml", "")
+            fileuid = fileuid.replace("-", "")
 
+            properties = {'custom_dimensions': {'fileuid': fileuid }}
+            logger.info("Receive Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), extra=properties)
+   
             blob_client = blob_service_client.get_blob_client(container=preprocess_container_name, blob=blob_name)
             stream = await blob_client.download_blob()
             data = await stream.readall()
@@ -90,7 +91,9 @@ async def on_event(partition_context, event):
             # Update the checkpoint so that the program doesn't read the events
             await partition_context.update_checkpoint(event)
             end = time.time()
-            logger.info("End Appender event " + str(new_event_json[0]["data"]["requestId"]) + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " took (sec) " + str(end-start))
+
+            properties = {'custom_dimensions': {'fileuid': fileuid, 'appenderReqTime': str(end-start)}}
+            logger.info("End Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " took (sec) " + str(end-start))
     except Exception as e:
         logger.error("Error - ", e.args[0])
 

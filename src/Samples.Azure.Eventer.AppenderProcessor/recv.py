@@ -92,8 +92,8 @@ async def on_event(partition_context, event):
             await partition_context.update_checkpoint(event)
             end = time.time()
 
-            properties = {'custom_dimensions': {'fileuid': fileuid, 'appenderReqTime': str(end-start)}}
-            logger.info("End Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " took (sec) " + str(end-start))
+            properties = {'custom_dimensions': {'fileuid': fileuid}}
+            logger.info("End Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " took (sec) " + str(end-start), extra=properties)
     except Exception as e:
         logger.error("Error - ", e.args[0])
 

@@ -127,11 +127,11 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                     if (after.TotalMilliseconds < 1000)
                     {
                         await Task.Delay(TimeSpan.FromMilliseconds(1000 - after.TotalMilliseconds));
-                        Logger.LogInformation("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took " + after.TotalMilliseconds + " ms");
+                        Logger.LogInformation("SendFiles - second " + (i+1) + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took " + after.TotalMilliseconds + " ms");
                     }
                     else
                     {
-                        Logger.LogWarning("SendFiles - second " + i + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took more than 1sec: " + after.TotalMilliseconds + " ms");
+                        Logger.LogWarning("SendFiles - second " + (i+1) + " of " + requestedSeconds + " total, number of files: " + requestedAmount + " took more than 1sec: " + after.TotalMilliseconds + " ms");
                     }
                 }
             }

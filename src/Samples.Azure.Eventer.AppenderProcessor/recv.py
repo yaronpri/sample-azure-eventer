@@ -73,7 +73,7 @@ async def on_event(partition_context, event):
             fileuid = fileuid.replace(".xml", "")
             fileuid = fileuid.replace("-", "")
 
-            properties = {'custom_dimensions': {'fileuid': fileuid }}
+            properties = {'custom_dimensions': {'fileuid': fileuid, 'step':'appenderReceive' }}
             logger.info("Receive Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), extra=properties)
    
             blob_client = blob_service_client.get_blob_client(container=preprocess_container_name, blob=blob_name)
@@ -92,7 +92,7 @@ async def on_event(partition_context, event):
             await partition_context.update_checkpoint(event)
             end = time.time()
 
-            properties = {'custom_dimensions': {'fileuid': fileuid}}
+            properties = {'custom_dimensions': {'fileuid': fileuid, 'step':'appenderComplete'}}
             logger.info("End Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " took (sec) " + str(end-start), extra=properties)
     except Exception as e:
         logger.error("Error - ", e.args[0])

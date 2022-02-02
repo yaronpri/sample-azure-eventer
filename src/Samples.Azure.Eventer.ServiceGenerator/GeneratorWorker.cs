@@ -114,7 +114,7 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                     var index = (i * requestedAmount) + j;
                     var filename = "demofile-" + generatedNames[index] + ".xml";
 
-                    using (Logger.BeginScope(new Dictionary<string, object> { ["fileuid"] = generatedNames[index] }))
+                    using (Logger.BeginScope(new Dictionary<string, object> { ["fileuid"] = generatedNames[index], ["step"]="GeneratorUploadFile" }))
                     {
                         tasks.Add(UploadBlob(containerClient, filename, isReadFromMemory));
                         Logger.LogInformation("SendFiles - second " + (i + 1) + " of " + requestedSeconds + " total, upload: " + filename);

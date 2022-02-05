@@ -1,18 +1,12 @@
 import sys, time, logging
-import asyncio, os, uuid
+import asyncio, os
 import xml.etree.ElementTree as ET
 import json
 from datetime import datetime
-from asyncio.events import new_event_loop
 from azure.eventhub.aio import EventHubConsumerClient
 from azure.eventhub.extensions.checkpointstoreblobaio import BlobCheckpointStore
-from azure.storage.blob.aio import BlobServiceClient, BlobClient, ContainerClient
-from opencensus.ext.azure import metrics_exporter
+from azure.storage.blob.aio import BlobServiceClient
 from opencensus.ext.azure.log_exporter import AzureLogHandler
-from opencensus.ext.azure.trace_exporter import AzureExporter
-from opencensus.trace.samplers import ProbabilitySampler
-from opencensus.trace.tracer import Tracer
-from opencensus.trace import config_integration
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)   
@@ -21,11 +15,10 @@ app_insights_instrumentationkey = os.environ["APPINSIGHTS_INSTRUMENTATIONKEY"]
 
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-if app_insights_instrumentationkey:
-    config_integration.trace_integrations(['requests']) 
-    
+if app_insights_instrumentationkey:    
     logger.addHandler(AzureLogHandler(
-        connection_string="InstrumentationKey=" + app_insights_instrumentationkey)
+        connection_string="InstrumentationKey=" + app_insights_instrumentationkey,
+        logging_sampling_rate=1.0)
     )
 
 #blob source details

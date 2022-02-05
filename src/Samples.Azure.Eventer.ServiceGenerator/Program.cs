@@ -34,6 +34,12 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                     {
                         services.AddApplicationInsightsTelemetryWorkerService();
                         services.AddSingleton<ITelemetryInitializer, MyTelemetryInitializer>();
+                        services.Configure<TelemetryConfiguration>((config)=>
+                        {
+                            var builder = config.DefaultTelemetrySink.TelemetryProcessorChainBuilder;
+                            builder.UseAdaptiveSampling(excludedTypes: "Trace;Exception");
+                            builder.Build();
+                        });                         
                     }
                 });
         }

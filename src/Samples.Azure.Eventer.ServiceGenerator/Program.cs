@@ -42,12 +42,7 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                         aiOptions.EnablePerformanceCounterCollectionModule = false;
                         services.AddApplicationInsightsTelemetryWorkerService(aiOptions);
                         
-                        /*services.Configure<TelemetryConfiguration>((config)=>
-                        {                          
-                            var builder = config.DefaultTelemetrySink.TelemetryProcessorChainBuilder;                                                
-                            builder.UseAdaptiveSampling(excludedTypes: "Trace;Exception");
-                            builder.Build();
-                        });*/             
+                             
                     }
                 });
         }

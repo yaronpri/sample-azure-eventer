@@ -34,12 +34,20 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                     {
                         services.AddApplicationInsightsTelemetryWorkerService();
                         services.AddSingleton<ITelemetryInitializer, MyTelemetryInitializer>();
-                        services.Configure<TelemetryConfiguration>((config)=>
-                        {
-                            var builder = config.DefaultTelemetrySink.TelemetryProcessorChainBuilder;
+
+                        var aiOptions = new Microsoft.ApplicationInsights.WorkerService.ApplicationInsightsServiceOptions();
+                        aiOptions.EnableAdaptiveSampling = false;
+                        aiOptions.EnableDependencyTrackingTelemetryModule = false;
+                        aiOptions.EnableQuickPulseMetricStream = false;
+                        aiOptions.EnablePerformanceCounterCollectionModule = false;
+                        services.AddApplicationInsightsTelemetryWorkerService(aiOptions);
+                        
+                        /*services.Configure<TelemetryConfiguration>((config)=>
+                        {                          
+                            var builder = config.DefaultTelemetrySink.TelemetryProcessorChainBuilder;                                                
                             builder.UseAdaptiveSampling(excludedTypes: "Trace;Exception");
                             builder.Build();
-                        });                         
+                        });*/             
                     }
                 });
         }

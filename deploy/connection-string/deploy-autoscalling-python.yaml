@@ -16,5 +16,5 @@ spec:
       storageConnectionFromEnv: "BLOB_CHECKPOINT_CONNECTIONSTRING"
       consumerGroup: "$Default"
       unprocessedEventThreshold: "5"
-      blobContainer: "checkpointprefileevents"
+      blobContainer: "step1checkpoint"
       checkpointStrategy: "blobMetadata"

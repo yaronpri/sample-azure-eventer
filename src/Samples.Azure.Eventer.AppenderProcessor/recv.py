@@ -27,15 +27,6 @@ if app_insights_instrumentationkey:
     logger.addHandler(AzureLogHandler(
         connection_string="InstrumentationKey=" + app_insights_instrumentationkey)
     )
-    
-    exporter = metrics_exporter.new_metrics_exporter(
-        connection_string="InstrumentationKey=" + app_insights_instrumentationkey)
-
-    tracer = Tracer(
-        exporter=AzureExporter(
-            connection_string="InstrumentationKey=" + app_insights_instrumentationkey),
-        sampler=ProbabilitySampler(1.0)
-    )
 
 #blob source details
 blob_service_connection = os.environ["BLOB_STORE_CONNECTIONSTRING"]
@@ -59,41 +50,39 @@ consumer_group_name = os.environ["EVENTHUB_CONSUMERGROUP"]
 
 async def on_event(partition_context, event):
     try:
-        with tracer.span(name="newappenderrquest") as span:
-            span.parent_span
-            start = time.time()
-            new_event_json = json.loads(event.body_as_str(encoding='UTF-8'))
+        start = time.time()
+        new_event_json = json.loads(event.body_as_str(encoding='UTF-8'))
 
-            full_blob_name = new_event_json[0]["data"]["url"]
-            start_substring = full_blob_name.index(container_uri) + len(container_uri) + 1
-            blob_name = full_blob_name[start_substring:len(full_blob_name)]  
-            
-            # Getting the file uid
-            fileuid = blob_name.replace("demofile-", "")
-            fileuid = fileuid.replace(".xml", "")
-            fileuid = fileuid.replace("-", "")
+        full_blob_name = new_event_json[0]["data"]["url"]
+        start_substring = full_blob_name.index(container_uri) + len(container_uri) + 1
+        blob_name = full_blob_name[start_substring:len(full_blob_name)]  
+        
+        # Getting the file uid
+        fileuid = blob_name.replace("demofile-", "")
+        fileuid = fileuid.replace(".xml", "")
+        fileuid = fileuid.replace("-", "")
 
-            properties = {'custom_dimensions': {'fileuid': fileuid, 'step':'appenderReceive' }}
-            logger.info("Receive Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), extra=properties)
-   
-            blob_client = blob_service_client.get_blob_client(container=preprocess_container_name, blob=blob_name)
-            stream = await blob_client.download_blob()
-            data = await stream.readall()
+        properties = {'custom_dimensions': {'fileuid': fileuid, 'step':'appenderReceive' }}
+        logger.info("Receive Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), extra=properties)
 
-            #TODO: research for async implementation
-            tree = ET.fromstring(data)
-            new1element = ET.fromstring("<New1>new1</New1>")
-            new2element = ET.fromstring("<New2>new2</New2>")
-            tree.append(new1element)
-            tree.append(new2element)
-            result_blob_client = blob_result_service_client.get_blob_client(container=result_container_name, blob=blob_name)
-            await result_blob_client.upload_blob(ET.tostring(tree, encoding='utf8'))
-            # Update the checkpoint so that the program doesn't read the events
-            await partition_context.update_checkpoint(event)
-            end = time.time()
+        blob_client = blob_service_client.get_blob_client(container=preprocess_container_name, blob=blob_name)
+        stream = await blob_client.download_blob()
+        data = await stream.readall()
 
-            properties = {'custom_dimensions': {'fileuid': fileuid, 'step':'appenderComplete'}}
-            logger.info("End Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " took (sec) " + str(end-start), extra=properties)
+        #TODO: research for async implementation
+        tree = ET.fromstring(data)
+        new1element = ET.fromstring("<New1>new1</New1>")
+        new2element = ET.fromstring("<New2>new2</New2>")
+        tree.append(new1element)
+        tree.append(new2element)
+        result_blob_client = blob_result_service_client.get_blob_client(container=result_container_name, blob=blob_name)
+        await result_blob_client.upload_blob(ET.tostring(tree, encoding='utf8'))
+        # Update the checkpoint so that the program doesn't read the events
+        await partition_context.update_checkpoint(event)
+        end = time.time()
+
+        properties = {'custom_dimensions': {'fileuid': fileuid, 'step':'appenderComplete'}}
+        logger.info("End Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " took (sec) " + str(end-start), extra=properties)
     except Exception as e:
         logger.error("Error - ", e.args[0])
 

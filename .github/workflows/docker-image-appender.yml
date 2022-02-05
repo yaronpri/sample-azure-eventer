@@ -1,0 +1,24 @@
+name: Docker Image CI - Appender
+
+on:
+  push:
+    branches: [ main ]
+    paths: 'src/Samples.Azure.Eventer.AppenderProcessor/**' 
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Docker Login
+      uses: docker/login-action@v1.6.0
+      with:
+        username: yaronpr
+        password: ${{ secrets.DOCKERHUB }}      
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+      run: docker build ./src/Samples.Azure.Eventer.AppenderProcessor/ --file src/Samples.Azure.Eventer.AppenderProcessor/Dockerfile --tag yaronpr/samples-azure-eventer-python-appender:latest
+    - name: Push the Docker image
+      run: docker push yaronpr/samples-azure-eventer-python-appender:latest

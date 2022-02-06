@@ -56,7 +56,9 @@ spec:
           valueFrom:
             secretKeyRef:
               name: secrets-appender-consumer
-              key: appinsights-insrumentationkey                         
+              key: appinsights-insrumentationkey
+      nodeSelector:
+        "appender": "yes"
 ---
 apiVersion: v1
 kind: Secret

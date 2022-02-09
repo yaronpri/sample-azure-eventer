@@ -5,6 +5,7 @@ metadata:
   labels:
     app: event-appender
 spec:
+  replicas: 32
   selector:
     matchLabels:
       app: event-appender

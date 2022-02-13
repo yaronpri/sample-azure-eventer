@@ -5,7 +5,7 @@ metadata:
   labels:
     app: event-appender
 spec:
-  replicas: 100
+  replicas: 32
   selector:
     matchLabels:
       app: event-appender
@@ -21,7 +21,7 @@ spec:
         - name: EVENTHUB_CONSUMERGROUP
           value: "$Default"
         - name: EVENTHUB_NAME
-          value: "step1premium"
+          value: "step1"
         - name: EVENTHUB_CONNECTIONSTRING
           valueFrom:
             secretKeyRef:

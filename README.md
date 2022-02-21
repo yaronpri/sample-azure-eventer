@@ -9,6 +9,6 @@ We will use also AKS with KEDA for auto-scalling pod.
 
 Sample solution sketch:
 
-![image](https://user-images.githubusercontent.com/89332819/154981548-e7955cb9-86b0-482d-a001-662b8ef820bc.png)
+![image](https://user-images.githubusercontent.com/89332819/154981777-9a8060ec-4402-4861-a614-df8f032656a4.png)
 
 

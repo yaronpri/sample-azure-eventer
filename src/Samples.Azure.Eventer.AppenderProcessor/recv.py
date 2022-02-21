@@ -78,6 +78,8 @@ async def on_event(partition_context, event):
         logger.info("End Appender event " + blob_name + " " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " took (sec) " + str(end-start), extra=properties)
     except Exception as e:
         logger.error("Error - ", e.args[0])
+        # To improve -- send the event to poison queue
+        await partition_context.update_checkpoint(event)
 
     # Print the event data.
     #print("Received the event: \"{}\" from the partition with ID: \"{}\"".format(event.body_as_str(encoding='UTF-8'), partition_context.partition_id))

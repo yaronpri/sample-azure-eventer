@@ -77,11 +77,25 @@ namespace Samples.Azure.Eventer.ExtractorProcessor
             counter++; //just for record
             try
             {
+                if (processEventArgs.CancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
                 DateTime before = DateTime.Now;
+
+                var lastEnqueuedEventProperties = processEventArgs.Partition.ReadLastEnqueuedEventProperties();
+                var lastEnqueuedTime = lastEnqueuedEventProperties.EnqueuedTime;
+                var lastSequenceNumber = lastEnqueuedEventProperties.SequenceNumber;
+                
+
                 var rawMessageBody = processEventArgs.Data.EventBody.ToString();               
                 processEventArgs.Data.MessageId = messageId;
                 
-                Logger.LogInformation("Received event num. {Counter} {MessageId} -------------- at {TimeStarted}", counter, processEventArgs.Data.MessageId, Helper.GetTimeWithMileseconds(before));
+                
+                Logger.LogInformation("Received event num. {Counter} partitionId: {partition} seqNum:{SeqNumber} time: {enqueuedTime} lastSeqNum: {lastSequenceNumber} lastEnqueuedTime: {lastEnqueuedTime} lag of: {lag} events --- at {TimeStarted}", counter,
+                    processEventArgs.Partition.PartitionId,
+                    processEventArgs.Data.SequenceNumber, processEventArgs.Data.EnqueuedTime,
+                    lastSequenceNumber, lastEnqueuedTime, lastSequenceNumber - processEventArgs.Data.SequenceNumber, Helper.GetTimeWithMileseconds(before));
 
                 var eventData = JsonConvert.DeserializeObject<TMessage>(rawMessageBody);
 

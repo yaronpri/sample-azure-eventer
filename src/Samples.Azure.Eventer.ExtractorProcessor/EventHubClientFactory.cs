@@ -8,6 +8,8 @@ namespace Samples.Azure.Eventer.ExtractorProcessor
 {
     public static class EventHubClientFactory
     {
+        static EventProcessorClientOptions defaultOption = new EventProcessorClientOptions() { TrackLastEnqueuedEventProperties = true };
+        
         public static EventProcessorClient CreateWithManagedIdentityAuthentication(IConfiguration configuration, ILogger logger)
         {
             var hostname = configuration.GetValue<string>("EVENTHUB_HOST_NAME");
@@ -20,7 +22,7 @@ namespace Samples.Azure.Eventer.ExtractorProcessor
                 logger.LogInformation("Using user-assigned identity with ID {UserAssignedIdentityId}", clientIdentityId);
             }
 
-            return new EventProcessorClient(null, consumerGroup, hostname, eventHubName, new ManagedIdentityCredential(clientId: clientIdentityId));
+            return new EventProcessorClient(null, consumerGroup, hostname, eventHubName, new ManagedIdentityCredential(clientId: clientIdentityId), defaultOption);
         }
 
         public static EventProcessorClient CreateWithServicePrincipleAuthentication(IConfiguration configuration)
@@ -33,7 +35,7 @@ namespace Samples.Azure.Eventer.ExtractorProcessor
             var eventHubName = configuration.GetValue<string>("EVENTHUB_NAME");
             var blobContainerClient = BlobClientFactory.CreateWithServicePrincipleAuthentication(configuration, eBlobPurpose.Checkpoint);
 
-            return new EventProcessorClient(blobContainerClient, consumerGroup, hostname, eventHubName, new ClientSecretCredential(tenantId, appIdentityId, appIdentitySecret));
+            return new EventProcessorClient(blobContainerClient, consumerGroup, hostname, eventHubName, new ClientSecretCredential(tenantId, appIdentityId, appIdentitySecret), defaultOption);
         }
 
         public static EventProcessorClient CreateWithConnectionStringAuthentication(IConfiguration configuration, ILogger logger)
@@ -45,7 +47,7 @@ namespace Samples.Azure.Eventer.ExtractorProcessor
 
             logger.LogInformation("Creating EventHubProcessor using ConnectionString {name} {group}", eventHubName, consumerGroup);
 
-            return new EventProcessorClient(blobContainerClient, consumerGroup, connectionString, eventHubName);
+            return new EventProcessorClient(blobContainerClient, consumerGroup, connectionString, eventHubName, defaultOption);
         }
     }
 }

@@ -19,10 +19,12 @@ namespace Samples.Azure.Eventer.ServiceGenerator
     public class GeneratorWorker : BackgroundService
     {
         private static string SAMPLE_FILE = "SampleSourceFile.xml";
+        private static string SAMPLE_FILE_1MB = "SampleSourceFile1MB.xml";
         protected readonly IConfiguration Configuration;
         protected readonly ILogger<GeneratorWorker> Logger;
         protected readonly TelemetryClient TelemetryClient;
         private BinaryData SampleFileData;
+        private BinaryData SampleFileData1MB;
 
         // Specify the StorageTransferOptions
         private BlobUploadOptions options = new BlobUploadOptions
@@ -69,6 +71,8 @@ namespace Samples.Azure.Eventer.ServiceGenerator
 
                 var filebytes = await File.ReadAllBytesAsync(SAMPLE_FILE);
                 SampleFileData = BinaryData.FromBytes(filebytes);
+                var filebytes1MB = await File.ReadAllBytesAsync(SAMPLE_FILE_1MB);
+                SampleFileData1MB = BinaryData.FromBytes(filebytes1MB);
 
                 if (queueClient.Exists())
                 {
@@ -80,7 +84,8 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                             var request = msg.Value.Body.ToObjectFromJson<GeneratorDetails>();
                             await queueClient.DeleteMessageAsync(msg.Value.MessageId, msg.Value.PopReceipt);
 
-                            await SendFiles(containerClient, request.IsReadFromMemory, request.RequestedAmount, request.RequestedSeconds);
+                            await SendFiles(containerClient, request.IsReadFromMemory, request.IsOneMBFile, request.RequestedAmount,
+                                request.RequestedSeconds);
                         }
                         await Task.Delay(1000); //delay the next in 1sec
                     }
@@ -97,7 +102,8 @@ namespace Samples.Azure.Eventer.ServiceGenerator
             Logger.LogInformation("GeneratorWorker stop queuing at: {Time}", DateTimeOffset.UtcNow);
         }
 
-        private async Task SendFiles(BlobContainerClient containerClient, bool isReadFromMemory, int requestedAmount, int requestedSeconds)
+        private async Task SendFiles(BlobContainerClient containerClient, bool isReadFromMemory, bool isOneMBFile,
+            int requestedAmount, int requestedSeconds)
         {
             Logger.LogInformation("SendFiles - Start uploading files at: {Time}", DateTimeOffset.UtcNow);
             var totalTime = new TimeSpan();
@@ -116,7 +122,7 @@ namespace Samples.Azure.Eventer.ServiceGenerator
 
                     using (Logger.BeginScope(new Dictionary<string, object> { ["fileuid"] = generatedNames[index], ["step"]="GeneratorUploadFile" }))
                     {
-                        tasks.Add(UploadBlob(containerClient, filename, isReadFromMemory));
+                        tasks.Add(UploadBlob(containerClient, filename, isReadFromMemory, isOneMBFile));
                         Logger.LogInformation("SendFiles - second " + (i + 1) + " of " + requestedSeconds + " total, upload: " + filename);
                     }
                 }
@@ -144,14 +150,30 @@ namespace Samples.Azure.Eventer.ServiceGenerator
             }        
         }
     
-        private Task UploadBlob(BlobContainerClient containerClient, string filename, bool isFromMemory)
+        private Task UploadBlob(BlobContainerClient containerClient, string filename, bool isFromMemory, bool isOneMBFile)
         {
             if (isFromMemory)
-                return containerClient.UploadBlobAsync(filename, SampleFileData);
+            {
+                if (isOneMBFile)
+                {
+                    return containerClient.UploadBlobAsync(filename, SampleFileData1MB);
+                }
+                else
+                {
+                    return containerClient.UploadBlobAsync(filename, SampleFileData);
+                }
+            }
             else
             {
                 BlobClient blobClient = containerClient.GetBlobClient(filename);
-                return blobClient.UploadAsync(SAMPLE_FILE, options);
+                if (isOneMBFile)
+                {
+                    return blobClient.UploadAsync(SAMPLE_FILE_1MB, options);
+                }
+                else
+                {
+                    return blobClient.UploadAsync(SAMPLE_FILE, options);
+                }                
             }
         }
 
@@ -173,5 +195,6 @@ namespace Samples.Azure.Eventer.ServiceGenerator
         public int RequestedAmount { get; set; }
         public int RequestedSeconds { get; set; }
         public bool IsReadFromMemory { get; set; }
+        public bool IsOneMBFile { get; set; }
     }
 }

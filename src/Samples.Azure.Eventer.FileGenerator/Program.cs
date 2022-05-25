@@ -20,7 +20,7 @@ namespace Samples.Azure.Eventer.FileGenerator
         public int RequestedAmount { get; set; }
         public int RequestedSeconds { get; set; }
         public bool IsReadFromMemory { get; set; }
-        public bool IsOneMBFile { get; set; }
+        public int SendFileMode { get; set; }
     }
 
     public class MyTelemetryInitializer : ITelemetryInitializer
@@ -55,10 +55,10 @@ namespace Samples.Azure.Eventer.FileGenerator
 
                 Console.WriteLine("What is the queue name ?");
                 var qName = Console.ReadLine();
-                Console.WriteLine("Do you want to send 1MB (1) or 3MB (2) ?");
-                var isOneMBFile = DetermineIsOneMBFile();
                 Console.WriteLine("Let's send some files,  how to read sample file, from memory (1) from disk (2) ?");
                 var isReadFromMemory = DetermineInMemory();
+                Console.WriteLine("Do you want to send 1MB (1) or 3MB (2) or differet 1MB files (3) ?");
+                var sendFileMode = DetermineSendFileMode(isReadFromMemory);
                 Console.WriteLine("how many parallel processes you want ?");
                 var requestedProcesses = DetermineProcessesAmount();
                 Console.WriteLine("how many files per second you want to upload ?");
@@ -83,14 +83,14 @@ namespace Samples.Azure.Eventer.FileGenerator
                     IServiceProvider serviceProvider = services.BuildServiceProvider();
                     var tc = serviceProvider.GetRequiredService<TelemetryClient>();
                     logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-                    await SendEventToQueue(isOneMBFile, isReadFromMemory, requestedProcesses, requestedAmount, requestedSeconds, qName, tc, logger);
+                    await SendEventToQueue(sendFileMode, isReadFromMemory, requestedProcesses, requestedAmount, requestedSeconds, qName, tc, logger);
                     tc.Flush();
                 }
                 else
                 {
                     IServiceProvider serviceProvider = services.BuildServiceProvider();
                     logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-                    await SendEventToQueue(isOneMBFile, isReadFromMemory, requestedProcesses, requestedAmount, requestedSeconds, qName, logger);
+                    await SendEventToQueue(sendFileMode, isReadFromMemory, requestedProcesses, requestedAmount, requestedSeconds, qName, logger);
                 }
   
                 //Test ONLY
@@ -106,7 +106,7 @@ namespace Samples.Azure.Eventer.FileGenerator
             }
         }
 
-        private static async Task SendEventToQueue(bool isOneMBFile, bool isReadFromMemory, int requestedProcesses, int requestedAmount, int requestedSeconds, string queueName,
+        private static async Task SendEventToQueue(int sendFileMode, bool isReadFromMemory, int requestedProcesses, int requestedAmount, int requestedSeconds, string queueName,
             ILogger logger)
         {
             string connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
@@ -114,7 +114,7 @@ namespace Samples.Azure.Eventer.FileGenerator
          
             QueueClient queueClient = new QueueClient(connectionString, queueName);
       
-            var request = new GeneratorDetails() { IsOneMBFile = isOneMBFile, IsReadFromMemory = isReadFromMemory,  RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
+            var request = new GeneratorDetails() { SendFileMode = sendFileMode, IsReadFromMemory = isReadFromMemory,  RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
             var jsonReq = JsonSerializer.Serialize<GeneratorDetails>(request);
 
             for (int i=0; i < requestedProcesses; i++)
@@ -124,7 +124,7 @@ namespace Samples.Azure.Eventer.FileGenerator
             }                                     
         }
 
-        private static async Task SendEventToQueue(bool isOneMBFile, bool isReadFromMemory, int requestedProcesses, int requestedAmount, int requestedSeconds, string queueName,
+        private static async Task SendEventToQueue(int sendFileMode, bool isReadFromMemory, int requestedProcesses, int requestedAmount, int requestedSeconds, string queueName,
             TelemetryClient tc, ILogger logger)
         {
             string connectionString = Config.GetSection("BLOB_CONNECTIONSTRING").Value;
@@ -132,7 +132,7 @@ namespace Samples.Azure.Eventer.FileGenerator
 
             QueueClient queueClient = new QueueClient(connectionString, queueName);
 
-            var request = new GeneratorDetails() { IsOneMBFile = isOneMBFile, IsReadFromMemory = isReadFromMemory, RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
+            var request = new GeneratorDetails() { SendFileMode = sendFileMode, IsReadFromMemory = isReadFromMemory, RequestedAmount = requestedAmount, RequestedSeconds = requestedSeconds };
             var jsonReq = JsonSerializer.Serialize<GeneratorDetails>(request);
 
             for (int i = 0; i < requestedProcesses; i++)
@@ -234,23 +234,26 @@ namespace Samples.Azure.Eventer.FileGenerator
             return DetermineInMemory();
         }
 
-        private static bool DetermineIsOneMBFile()
+        private static int DetermineSendFileMode(bool isInMemory)
         {
             var rawAmount = Console.ReadLine();
             if (int.TryParse(rawAmount, out int amount))
             {
-                if (amount == 1)
+                if ((isInMemory) && (amount == 3))
                 {
-                    return true;
+                    Console.WriteLine("That's not a valid combination InMemory and List of files, let's try that again");
                 }
-                else if (amount == 2)
+                else
                 {
-                    return false;
+                    if ((amount >= 1) && (amount <= 3))
+                    {
+                        return amount;
+                    }
                 }
             }
 
-            Console.WriteLine("That's not a valid amount (1 - 1MB file / 2 - 3MB file), let's try that again");
-            return DetermineIsOneMBFile();
+            Console.WriteLine("That's not a valid amount (1 - 1MB file / 2 - 3MB file / 3 - list of files), let's try that again");
+            return DetermineSendFileMode(isInMemory);
         }
 
         private static int DetermineProcessesAmount()
@@ -265,7 +268,7 @@ namespace Samples.Azure.Eventer.FileGenerator
             }
 
             Console.WriteLine("That's not a valid amount (1 - 32), let's try that again");
-            return DetermineOrderAmount();
+            return DetermineProcessesAmount();
         }
 
         private static int DetermineOrderAmount()
@@ -289,7 +292,7 @@ namespace Samples.Azure.Eventer.FileGenerator
             }
 
             Console.WriteLine("That's not a valid seconds, let's try that again");
-            return DetermineOrderAmount();
+            return DetermineSecondAmount();
         }
     }
 }

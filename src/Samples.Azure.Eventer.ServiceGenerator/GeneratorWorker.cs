@@ -20,7 +20,7 @@ namespace Samples.Azure.Eventer.ServiceGenerator
     {
         private static string SAMPLE_FILE = "SampleSourceFile.xml";
         private static string SAMPLE_FILE_1MB = "SampleSourceFile1MB.xml";
-        private static string SAMPLES_FILES_1MB_PLACEHOLDER = "samplefiles" + Path.DirectorySeparatorChar + "SampleSourceFile{0}.xml";
+        private static string SAMPLES_FILES_1MB_PLACEHOLDER = "samplesfiles" + Path.DirectorySeparatorChar + "SampleSourceFile{0}.xml";
         protected readonly IConfiguration Configuration;
         protected readonly ILogger<GeneratorWorker> Logger;
         protected readonly TelemetryClient TelemetryClient;

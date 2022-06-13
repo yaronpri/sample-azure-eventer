@@ -24,6 +24,9 @@
     <None Update="samplesfiles\SampleSourceFile1.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="samplesfiles\SampleSourceFile10.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="samplesfiles\SampleSourceFile11.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

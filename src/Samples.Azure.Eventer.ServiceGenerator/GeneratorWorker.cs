@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -13,6 +14,7 @@ using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace Samples.Azure.Eventer.ServiceGenerator
 {
@@ -21,6 +23,7 @@ namespace Samples.Azure.Eventer.ServiceGenerator
         private static string SAMPLE_FILE = "SampleSourceFile.xml";
         private static string SAMPLE_FILE_1MB = "SampleSourceFile1MB.xml";
         private static string SAMPLES_FILES_1MB_PLACEHOLDER = "samplesfiles" + Path.DirectorySeparatorChar + "SampleSourceFile{0}.xml";
+        private static string PREFIX_STRING = "<File><Name>{0}</Name>";
         protected readonly IConfiguration Configuration;
         protected readonly ILogger<GeneratorWorker> Logger;
         protected readonly TelemetryClient TelemetryClient;
@@ -30,7 +33,8 @@ namespace Samples.Azure.Eventer.ServiceGenerator
 
         // Specify the StorageTransferOptions
         private BlobUploadOptions options = new BlobUploadOptions
-        {            
+        {
+             
             TransferOptions = new StorageTransferOptions
             {
                 // Set the maximum number of workers that 
@@ -38,8 +42,9 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                 MaximumConcurrency = 16,
 
                 // Set the maximum length of a transfer to 50MB.
-                MaximumTransferSize = 50 * 1024 * 1024,                
-            }
+                MaximumTransferSize = 50 * 1024 * 1024,
+                
+            },
         };
 
         public GeneratorWorker(IConfiguration configuration, ILogger<GeneratorWorker> logger)
@@ -119,13 +124,12 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                 var tasks = new List<Task>();
                 for (int j = 0; j < requestedAmount; j++)
                 {
-                    var index = (i * requestedAmount) + j;
-                    var filename = "demofile-" + generatedNames[index] + ".xml";
+                    var index = (i * requestedAmount) + j;                    
 
                     using (Logger.BeginScope(new Dictionary<string, object> { ["fileuid"] = generatedNames[index], ["step"]="GeneratorUploadFile" }))
                     {
-                        tasks.Add(UploadBlob(containerClient, filename, isReadFromMemory, sendFileMode));
-                        Logger.LogInformation("SendFiles - second " + (i + 1) + " of " + requestedSeconds + " total, upload: " + filename);
+                        tasks.Add(UploadBlob(containerClient, generatedNames[index], isReadFromMemory, sendFileMode));
+                        Logger.LogInformation("SendFiles - second " + (i + 1) + " of " + requestedSeconds + " total, upload: " + generatedNames[index]);
                     }
                 }
                 await Task.WhenAll(tasks);
@@ -154,20 +158,21 @@ namespace Samples.Azure.Eventer.ServiceGenerator
     
         private Task UploadBlob(BlobContainerClient containerClient, string filename, bool isFromMemory, int sendFileMode)
         {
+            var fullFilename = "demofile-" + filename + ".xml";
             if (isFromMemory)
             {
                 if (sendFileMode == (int)eSendMode.OneMB)
                 {
-                    return containerClient.UploadBlobAsync(filename, SampleFileData1MB);
+                    return containerClient.UploadBlobAsync(fullFilename, SampleFileData1MB);
                 }
                 else
                 {
-                    return containerClient.UploadBlobAsync(filename, SampleFileData);
+                    return containerClient.UploadBlobAsync(fullFilename, SampleFileData);
                 }
             }
             else
             {
-                BlobClient blobClient = containerClient.GetBlobClient(filename);
+                BlobClient blobClient = containerClient.GetBlobClient(fullFilename);
                 if (sendFileMode == (int)eSendMode.OneMB)
                 {
                     return blobClient.UploadAsync(SAMPLE_FILE_1MB, options);
@@ -176,9 +181,16 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                 {
                     if (sendFileMode == (int)eSendMode.ListOfOneMB)
                     {
-                        int randomFileNumeber = Rand.Next(1, 201);
+                        int randomFileNumeber = Rand.Next(1, 100);
                         string fileToUpload = string.Format(SAMPLES_FILES_1MB_PLACEHOLDER, randomFileNumeber);
-                        return blobClient.UploadAsync(fileToUpload, options);
+
+                        var firstPart = Encoding.ASCII.GetBytes(string.Format(PREFIX_STRING, filename));
+                        var secondPart = File.ReadAllBytes(fileToUpload);
+                        var combineFile = Combine(firstPart, secondPart);
+
+                        var newFileToUpload = BinaryData.FromBytes(combineFile);
+
+                        return blobClient.UploadAsync(newFileToUpload, options);
                     }
                     else
                     {
@@ -198,6 +210,11 @@ namespace Samples.Azure.Eventer.ServiceGenerator
             }
 
             return retVal;
+        }
+
+        private static byte[] Combine(byte[] first, byte[] second)
+        {
+            return first.Concat(second).ToArray();
         }
     }
 

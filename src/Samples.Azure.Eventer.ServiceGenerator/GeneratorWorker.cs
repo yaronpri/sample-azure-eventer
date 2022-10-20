@@ -31,10 +31,15 @@ namespace Samples.Azure.Eventer.ServiceGenerator
         private BinaryData SampleFileData;
         private BinaryData SampleFileData1MB;
 
+        private static Dictionary<string,string> INITIAL_METADATA =
+            new Dictionary<string, string> { { "meta1", "val1" }, { "meta2", DateTime.Now.ToShortDateString() } };
+        //private static Dictionary<string, string> INITIAL_TAGS =
+        //    new Dictionary<string, string> { { "tag1", "val1" }, { "tag2", DateTime.Now.ToShortDateString() } };
         // Specify the StorageTransferOptions
         private BlobUploadOptions options = new BlobUploadOptions
         {
-             
+            Metadata = INITIAL_METADATA,
+            //Tags = INITIAL_TAGS,
             TransferOptions = new StorageTransferOptions
             {
                 // Set the maximum number of workers that 
@@ -175,6 +180,8 @@ namespace Samples.Azure.Eventer.ServiceGenerator
                 BlobClient blobClient = containerClient.GetBlobClient(fullFilename);
                 if (sendFileMode == (int)eSendMode.OneMB)
                 {
+                    
+
                     return blobClient.UploadAsync(SAMPLE_FILE_1MB, options);
                 }
                 else

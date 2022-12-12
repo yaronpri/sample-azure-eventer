@@ -16,7 +16,7 @@ The KPI is to complete the end-to-end flow, from ingested time to 1st storage un
 **Azure Event Grid** - responsible for the pub/sub mechanism\
 **Azure Event Hub** - data streaming platform and event ingestion service \
 **Azure Storage** - persistant storage \
-**Azure Application Insigths** - Monitor solution for application \
+**Azure Application Insigths** - Monitor solution for application
 
 ## Solution sketch:
 

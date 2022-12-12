@@ -3,8 +3,8 @@
 This is a sample solution which demonstrate how to build event-based solution running on AKS with KEDA.
 
 ## Business requirements
-This sample demonstrate how you can ingest high rate of new files XML files with wav file in base64 format) into Azure Storage, do several manupulation over the generated files (add new xml elements and extract the .wav file) and save the result on Azure Storage.
-The KPI is to complete the end-to-end flow, from ingested time to 1st storage until getting the result to last storage in less than 4sec.
+This sample demonstrate how you can ingest high rate of new XML files which include base64 .wav audio file) into Azure Storage, do several manupulation over the generated files (add new xml elements and extract the .wav file) and save the result on Azure Storage.
+The KPI is to complete the end-to-end flow, from ingested time to 1st storage until getting the result to last storage in less than 4sec while handling 1,200 requests per seconds.
 
 ## Code components 
 **'Service Generator'** - A .net core service which simulate file ingesting into Azure Storage. The service get as input the user request based on several parameters: number of files per second, simulation time \

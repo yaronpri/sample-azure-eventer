@@ -18,6 +18,9 @@ The KPI is to complete the end-to-end flow, from ingested time to 1st storage un
 **Azure Storage** - persistant storage \
 **Azure Application Insigths** - Monitor solution for application
 
+## Open Source component 
+[**KEDA**](https://keda.sh/) - Kubernetes - Pod Auto-Scaler open source project
+
 ## Solution sketch:
 
 ![image](image/sketch.png)

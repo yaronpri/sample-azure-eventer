@@ -12,6 +12,7 @@ The KPI is to complete the end-to-end flow, from ingested time to 1st storage un
 **'Extractor Service'** - A .net core service which extract the .wav audio from the xml file and save it in result storage.
 
 ## Azure components
+**Azure Kubernetes Service (AKS)** - Managed Kubernetes Cluster by Azure
 **Azure Event Grid** - responsible for the pub/sub mechanism\
 **Azure Event Hub** - data streaming platform and event ingestion service \
 **Azure Storage** - persistant storage \
